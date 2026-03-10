@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ringover × GHL Bridge</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #2a2a3a;
+    --accent: #00e5a0;
+    --accent2: #7c5cfc;
+    --warn: #ff6b6b;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --ring: #1db954;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 48px; }
+  .logo {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 20px; color: #000;
+    flex-shrink: 0;
+  }
+  .header-text h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-text p { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .status-pill {
+    margin-left: auto;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all 0.3s;
+  }
+  .status-pill.ok { border-color: var(--accent); color: var(--accent); }
+  .status-pill.err { border-color: var(--warn); color: var(--warn); }
+  .status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+
+  /* Grid layout */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid.full { grid-template-columns: 1fr; }
+  .span2 { grid-column: span 2; }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(0,229,160,0.2); }
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title span { color: var(--accent); }
+
+  /* Endpoint block */
+  .endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .endpoint:last-child { margin-bottom: 0; }
+  .ep-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .method {
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .method.post { background: rgba(0,229,160,0.15); color: var(--accent); }
+  .method.get  { background: rgba(124,92,252,0.15); color: var(--accent2); }
+  .ep-path { color: var(--text); font-size: 13px; }
+  .ep-desc { color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+  /* Code block */
+  .code-block {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin-top: 12px;
+    position: relative;
+  }
+  .code-block pre { white-space: pre-wrap; word-break: break-all; }
+  .k { color: var(--accent2); }
+  .s { color: var(--accent); }
+  .c { color: var(--muted); }
+  .n { color: #ffd93d; }
+
+  .copy-btn {
+    position: absolute; top: 10px; right: 10px;
+    background: var(--border); border: none; color: var(--muted);
+    padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 10px;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: var(--accent); color: #000; }
+
+  /* Test form */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; color: var(--muted); font-size: 11px; margin-bottom: 6px; letter-spacing: 0.5px; }
+  input, select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none; cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #00b87a);
+    color: #000;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,229,160,0.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    margin-top: 8px;
+  }
+
+  /* Response box */
+  .response-box {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-top: 14px;
+    min-height: 60px;
+    font-size: 11px;
+    line-height: 1.6;
+    display: none;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .response-box.success { border-color: var(--accent); color: var(--accent); }
+  .response-box.error   { border-color: var(--warn); color: var(--warn); }
+  .response-box.show    { display: block; }
+
+  /* Stats row */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 800;
+    color: var(--accent);
+    display: block;
+  }
+  .stat-lbl { color: var(--muted); font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; margin-top: 4px; }
+
+  /* Log feed */
+  .log-feed {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    height: 180px;
+    overflow-y: auto;
+    font-size: 11px;
+    line-height: 1.8;
+  }
+  .log-entry { display: flex; gap: 10px; }
+  .log-time { color: var(--muted); flex-shrink: 0; }
+  .log-ok   { color: var(--accent); }
+  .log-err  { color: var(--warn); }
+  .log-info { color: var(--accent2); }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step {
+    display: flex; gap: 14px; margin-bottom: 16px; align-items: flex-start;
+  }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 11px;
+    color: #000; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-content h4 { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .step-content p  { color: var(--muted); font-size: 11px; line-height: 1.6; }
+  .step-content code {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 4px; color: var(--accent); font-size: 11px;
+  }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Animations */
+  .card { animation: fadeUp 0.4s ease both; }
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+    .span2 { grid-column: span 1; }
+    .stats { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">R×G</div>
+    <div class="header-text">
+      <h1>Ringover × GHL Bridge</h1>
+      <p>Servidor de integración · Click-to-call desde pipeline</p>
+    </div>
+    <div class="status-pill" id="statusPill">
+      <div class="status-dot"></div>
+      <span id="statusText">Verificando...</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- Stats -->
+    <div class="card span2">
+      <div class="card-title"><span>◈</span> Estado del sistema</div>
+      <div class="stats" id="statsRow">
+        <div class="stat"><span class="stat-val" id="statUsers">—</span><div class="stat-lbl">Agentes</div></div>
+        <div class="stat"><span class="stat-val" id="statNumbers">—</span><div class="stat-lbl">Números</div></div>
+        <div class="stat"><span class="stat-val" id="statCalls">—</span><div class="stat-lbl">Llamadas hoy</div></div>
+      </div>
+    </div>
+
+    <!-- Test call -->
+    <div class="card">
+      <div class="card-title"><span>◎</span> Probar llamada</div>
+      <div class="form-group">
+        <label>NÚMERO DEL CONTACTO (E.164)</label>
+        <input type="text" id="toNumber" placeholder="+34612345678" />
+      </div>
+      <div class="form-group">
+        <label>TU NÚMERO RINGOVER (opcional)</label>
+        <input type="text" id="fromNumber" placeholder="+34911234567" />
+      </div>
+      <button class="btn btn-primary" onclick="testCall()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014.72 12 19.79 19.79 0 011.65 3.39 2 2 0 013.62 1.22h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 8.91a16 16 0 006 6l.76-.76a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+        Iniciar llamada
+      </button>
+      <button class="btn btn-secondary" onclick="checkHealth()">Verificar conexión</button>
+      <div class="response-box" id="callResponse"></div>
+    </div>
+
+    <!-- Setup steps -->
+    <div class="card">
+      <div class="card-title"><span>◉</span> Configuración en GHL</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Custom Action en GHL</h4>
+            <p>Ve a <strong>Settings → Integrations → Custom Actions</strong> y crea una nueva acción de tipo Webhook.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>URL del webhook</h4>
+            <p>Apunta la acción a tu servidor:<br>
+            <code id="webhookUrl">http://TU-SERVIDOR/ghl/call</code></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Campos a enviar</h4>
+            <p>Mapea <code>contact.phone</code> → <code>contact_phone</code> y opcionalmente <code>user.phone</code> → <code>agent_number</code>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Asignar al pipeline</h4>
+            <p>En el contacto del pipeline, añade la acción al botón de teléfono o como acción rápida.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Endpoints -->
+    <div class="card span2">
+      <div class="card-title"><span>◇</span> Endpoints disponibles</div>
+
+      <div class="endpoint">
+        <div class="ep-header">
+          <span class="method post">POST</span>
+          <span class="ep-path">/ghl/call</span>
+        </div>
+        <div class="ep-desc">Endpoint principal. GHL lo llama al hacer click en el teléfono del pipeline. Inicia la llamada vía Ringover.</div>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+          <pre><span class="c">// Body esperado:</span>
+<span class="k">{</span>
+  <span class="s">"contact_phone"</span>: <span class="n">"+34612345678"</span>,  <span class="c">// requerido</span>
+  <span class="s">"agent_number"</span>: <span class="n">"+34911234567"</span>,   <span class="c">// opcional</span>
+  <span class="s">"contact_name"</span>: <span class="n">"Juan García"</span>,       <span class="c">// opcional</span>
+  <span class="s">"contact_id"</span>: <span class="n">"ghl_contact_id"</span>      <span class="c">// opcional</span>
+<span class="k">}</span></pre>
+        </div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header">
+          <span class="method post">POST</span>
+          <span class="ep-path">/ghl/webhook</span>
+        </div>
+        <div class="ep-desc">Webhook genérico. Acepta directamente el payload nativo de GHL sin transformación.</div>
+      </div>
+
+      <div class="endpoint">
+        <div class="ep-header">
+          <span class="method get">GET</span>
+          <span class="ep-path">/ringover/users &nbsp;·&nbsp; /ringover/numbers &nbsp;·&nbsp; /ringover/calls</span>
+        </div>
+        <div class="ep-desc">Proxies de consulta a la API de Ringover. Útiles para poblar selectores en GHL.</div>
+      </div>
+    </div>
+
+    <!-- cURL example -->
+    <div class="card span2">
+      <div class="card-title"><span>◈</span> Ejemplo de integración en GHL (Custom Action)</div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">copiar</button>
+        <pre><span class="c"># GHL Custom Action → HTTP Request</span>
+<span class="c"># Method: POST</span>
+<span class="c"># URL: https://tu-servidor.com/ghl/call</span>
+<span class="c"># Headers: Content-Type: application/json</span>
+<span class="c"># Body (usar variables de GHL):</span>
+
+<span class="k">{</span>
+  <span class="s">"contact_phone"</span>: <span class="n">"{{contact.phone}}"</span>,
+  <span class="s">"contact_name"</span>: <span class="n">"{{contact.name}}"</span>,
+  <span class="s">"contact_id"</span>: <span class="n">"{{contact.id}}"</span>
+<span class="k">}</span>
+
+<span class="c"># Respuesta exitosa:</span>
+<span class="k">{</span> <span class="s">"success"</span>: <span class="n">true</span>, <span class="s">"call_id"</span>: <span class="n">1234567890</span> <span class="k">}</span></pre>
+      </div>
+    </div>
+
+    <!-- Live log -->
+    <div class="card span2">
+      <div class="card-title"><span>◎</span> Log en tiempo real</div>
+      <div class="log-feed" id="logFeed">
+        <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-info">Dashboard iniciado. Verificando conexión con Ringover...</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const BASE = window.location.origin;
+
+function addLog(type, msg) {
+  const feed = document.getElementById('logFeed');
+  const t = new Date().toLocaleTimeString('es-ES');
+  const cls = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : 'log-info';
+  feed.innerHTML += `<div class="log-entry"><span class="log-time">${t}</span><span class="${cls}">${msg}</span></div>`;
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function showResponse(id, data, isOk) {
+  const el = document.getElementById(id);
+  el.textContent = JSON.stringify(data, null, 2);
+  el.className = `response-box show ${isOk ? 'success' : 'error'}`;
+}
+
+async function checkHealth() {
+  try {
+    addLog('info', 'Verificando conexión con Ringover...');
+    const r = await fetch(`${BASE}/health`);
+    const d = await r.json();
+    const pill = document.getElementById('statusPill');
+    const txt = document.getElementById('statusText');
+    if (d.ringover_connected) {
+      pill.className = 'status-pill ok';
+      txt.textContent = 'Conectado';
+      addLog('ok', 'Ringover API conectada correctamente');
+    } else {
+      pill.className = 'status-pill err';
+      txt.textContent = 'Error API';
+      addLog('err', `Error API Ringover: status ${d.ringover_status}`);
+    }
+    showResponse('callResponse', d, d.ringover_connected);
+  } catch(e) {
+    addLog('err', `Error: ${e.message}`);
+  }
+}
+
+async function loadStats() {
+  try {
+    const [usersR, numsR, callsR] = await Promise.all([
+      fetch(`${BASE}/ringover/users`).then(r=>r.json()),
+      fetch(`${BASE}/ringover/numbers`).then(r=>r.json()),
+      fetch(`${BASE}/ringover/calls?limit=100`).then(r=>r.json()),
+    ]);
+
+    if (usersR.list_count !== undefined)
+      document.getElementById('statUsers').textContent = usersR.list_count;
+    if (numsR.list_count !== undefined)
+      document.getElementById('statNumbers').textContent = numsR.list_count;
+
+    // Count today's calls
+    if (callsR.call_list) {
+      const today = new Date().toDateString();
+      const todayCalls = callsR.call_list.filter(c => {
+        const d = new Date(c.start_time * 1000 || c.creation_date);
+        return d.toDateString() === today;
+      });
+      document.getElementById('statCalls').textContent = todayCalls.length;
+    }
+  } catch(e) {
+    addLog('err', `No se pudieron cargar estadísticas: ${e.message}`);
+  }
+}
+
+async function testCall() {
+  const to = document.getElementById('toNumber').value.trim();
+  const from = document.getElementById('fromNumber').value.trim();
+
+  if (!to) { addLog('err', 'Introduce un número de destino'); return; }
+
+  addLog('info', `Iniciando llamada a ${to}...`);
+
+  const body = { contact_phone: to };
+  if (from) body.agent_number = from;
+
+  try {
+    const r = await fetch(`${BASE}/ghl/call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    showResponse('callResponse', d, d.success);
+    if (d.success) {
+      addLog('ok', `✓ Llamada iniciada · call_id: ${d.call_id}`);
+    } else {
+      addLog('err', `✗ Error: ${JSON.stringify(d.error)}`);
+    }
+  } catch(e) {
+    addLog('err', `Error de red: ${e.message}`);
+    showResponse('callResponse', { error: e.message }, false);
+  }
+}
+
+function copyCode(btn) {
+  const pre = btn.nextElementSibling;
+  navigator.clipboard.writeText(pre.textContent.trim());
+  btn.textContent = '✓ copiado';
+  setTimeout(() => btn.textContent = 'copiar', 1500);
+}
+
+// Set webhook URL hint
+document.getElementById('webhookUrl').textContent = `${BASE}/ghl/call`;
+
+// Init
+checkHealth();
+loadStats();
+</script>
+</body>
+</html>
